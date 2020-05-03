@@ -61,34 +61,38 @@ impl Scene for GameScene {
         match act {
             Action::MafiaInquery(id) => {
                 let mut res = false;
-                let caller = self.players.get_mut(from).unwrap();
-                if let Role::Doctor(leftover) = caller.role {
-                    if leftover >= 1 {
-                        caller.role = Role::Doctor(leftover - 1);
-                        res = self.role(id).map(|r| match r {
-                            Role::GodFather => false,
-                            r => r.is_mafia(),
-                        }).unwrap_or(false);
-                    }  
+                if let Some(caller) = self.players.get_mut(from) {
+                    if let Role::Doctor(leftover) = caller.role {
+                        if leftover >= 1 {
+                            caller.role = Role::Doctor(leftover - 1);
+                            res = self
+                                .role(id)
+                                .map(|r| match r {
+                                    Role::GodFather => false,
+                                    r => r.is_mafia(),
+                                })
+                                .unwrap_or(false);
+                        }
+                    }
                 }
                 Consequence::MafiaStatus(res)
-            },
+            }
             _ => {
                 self.events.push(act);
-                unimplemented!()
+                Consequence::Deferred
             }
         }
     }
     /*    match req {
-            Inquery::MafiaInquery(id) => {
-                let is_mafia = self.role(id)
-                    .map(|role| match role {
-                        Role::GodFather => false,
-                        r => r.is_mafia(),
-                    })?;
+    Inquery::MafiaInquery(id) => {
+        let is_mafia = self.role(id)
+            .map(|role| match role {
+                Role::GodFather => false,
+                r => r.is_mafia(),
+            })?;
 
-                Some(InqueryResult::MafiaCheck(is_mafia))
-            }*/
+        Some(InqueryResult::MafiaCheck(is_mafia))
+    }*/
     fn status(&mut self) -> Option<InqueryStatus> {
         if self.status_requested == 0 {
             return None;

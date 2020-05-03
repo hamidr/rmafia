@@ -18,7 +18,6 @@ pub enum Action {
 pub enum Consequence {
     Deferred,
     MafiaStatus(bool),
-    Rejected,
 }
 
 pub type InqueryStatus = u32;
