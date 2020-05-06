@@ -1,103 +1,109 @@
-use std::collections::HashSet;
-use std::convert::TryFrom;
-
-use crate::models::{Id, Role};
-use crate::players::Players;
+use crate::id::Id;
+use crate::player::*;
+use crate::player_repository::*;
 use crate::scene::*;
 
+type ActionRequest = (Id, Action, Id);
+
 #[derive(Clone)]
-struct GameScene {
+struct GameScene<P: PlayerRepository> {
     pub status_requested: u32,
-    pub players: Players,
-    events: Vec<Action>,
-    city: HashSet<Id>,
-    cemetery: HashSet<Id>,
+    pub players: P,
+    events: Vec<ActionRequest>,
 }
 
-impl GameScene {
-    fn init(players: &Players, status_call: u32) -> GameScene {
+impl<P> GameScene<P>
+where
+    P: PlayerRepository,
+{
+    fn new(players: P, status_limit: u32) -> GameScene<P> {
         GameScene {
-            status_requested: status_call,
-            players: players.clone(),
+            status_requested: status_limit,
+            players: players,
             events: Vec::new(),
-            city: players.ids(),
-            cemetery: HashSet::new(),
         }
     }
 
-    fn role(&self, id: Id) -> Option<Role> {
-        self.players.get(id).map(|p| p.role)
-    }
-
-    fn bury(&mut self, id: Id) -> bool {
-        if self.city.remove(&id) {
-            let res = self.cemetery.insert(id);
-            return res;
-        }
-        false
-    }
-
-    fn mafia_count(&self) -> u32 {
-        let c = self
-            .city
-            .iter()
-            .filter(|pid| {
-                self.players
-                    .get(**pid)
-                    .map(|p| p.role.is_mafia())
-                    .unwrap_or(false)
-            })
-            .count();
-        u32::try_from(c).unwrap_or(0)
-    }
-}
-
-impl Scene for GameScene {
-    fn wakeup(&self) -> State {
+    fn eval_events(&mut self) {
         unimplemented!()
     }
 
-    fn apply(&mut self, from: Id, act: Action) -> Consequence {
-        match act {
-            Action::MafiaInquery(id) => {
-                let mut res = false;
-                if let Some(caller) = self.players.get_mut(from) {
-                    if let Role::Doctor(leftover) = caller.role {
-                        if leftover >= 1 {
-                            caller.role = Role::Doctor(leftover - 1);
-                            res = self
-                                .role(id)
-                                .map(|r| match r {
-                                    Role::GodFather => false,
-                                    r => r.is_mafia(),
-                                })
-                                .unwrap_or(false);
-                        }
-                    }
-                }
-                Consequence::MafiaStatus(res)
-            }
-            _ => {
-                self.events.push(act);
-                Consequence::Deferred
-            }
+    fn state(&self) -> State {
+        let count = self.players.count();
+        match (count.mafia, count.citizen, count.psycho) {
+            (m, c, p) if m == c && m >= 1 && p == 0 => State::Lost,
+            (m, _, p) if m == 0 && p == 0 => State::Won,
+            (m, c, p) if (m + c) == 0 && p == 1 => State::WTF,
+            _ => State::Fighting,
         }
     }
-    /*    match req {
-    Inquery::MafiaInquery(id) => {
-        let is_mafia = self.role(id)
-            .map(|role| match role {
-                Role::GodFather => false,
-                r => r.is_mafia(),
-            })?;
 
-        Some(InqueryResult::MafiaCheck(is_mafia))
-    }*/
-    fn status(&mut self) -> Option<InqueryStatus> {
-        if self.status_requested == 0 {
+    fn is_it_mafia(player: &mut Player) -> bool {
+        if let Role::GodFather(ref mut n) = player.role {
+            Self::use_power(n)
+        } else {
+            player.is_mafia()
+        }
+    }
+
+    fn use_power(n: &mut u32) -> bool {
+        if *n == 0 {
+            return false;
+        }
+        *n -= 1;
+        true
+    }
+
+    fn cast_on(action: Action, by: &mut Player, on: &mut Player) -> bool {
+        let self_call = std::ptr::eq(by, on);
+        match (&mut by.role, action) {
+            (Role::Detective(ref mut mail), Action::MafiaInquery) => {
+                mail.push(Self::is_it_mafia(on));
+                true
+            }
+            (Role::Doctor(ref mut n), Action::Heal) => match (self_call, Self::use_power(n)) {
+                (true, true) => Self::use_power(n) && on.set_state(LifeState::Alive),
+                (false, _) => on.set_state(LifeState::Alive),
+                _ => false,
+            },
+            (Role::Sniper(ref mut n), Action::HeadShot) => {
+                match (Self::use_power(n), on.is_citizen()) {
+                    (true, true) => by.set_state(LifeState::Injured),
+                    (true, false) => on.set_state(LifeState::Injured),
+                    _ => false,
+                }
+            }
+            (Role::Psycho, Action::Kill) => on.set_state(LifeState::Injured),
+            (Role::Silencer, Action::Slience) => on.set_state(LifeState::Silent),
+
+            _ => false,
+        }
+    }
+}
+
+pub trait NightEvent {
+    fn night_event(from: &mut Player, action: Action, on: &mut Player) -> bool;
+}
+
+impl<P> Scene for GameScene<P>
+where
+    P: PlayerRepository,
+{
+    fn wakeup(&mut self) -> State {
+        self.eval_events();
+        self.events.clear();
+        self.state()
+    }
+
+    fn cast_on(&mut self, action: Action, from: Id, on: Id) {
+        self.events.push((from, action, on));
+    }
+
+    fn status(&mut self) -> Option<PlayerCount> {
+        if self.status_requested <= 0 {
             return None;
         }
         self.status_requested -= 1;
-        Some(self.mafia_count())
+        Some(self.players.count())
     }
 }

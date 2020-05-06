@@ -1,29 +1,24 @@
-use crate::models::{Id, Role};
+use crate::id::Id;
+use crate::player_repository::PlayerCount;
 
 pub enum State {
-    Playing,
-    CityWon,
-    CityLost,
+    Fighting,
+    Won,
+    Lost,
+    WTF,
 }
 
 #[derive(Clone, Debug)]
 pub enum Action {
-    Kill(Id),
-    HeadShot(Id),
-    Heal(Id),
-    Slience(Id),
-    MafiaInquery(Id),
+    Kill,
+    HeadShot,
+    Heal,
+    Slience,
+    MafiaInquery,
 }
-
-pub enum Consequence {
-    Deferred,
-    MafiaStatus(bool),
-}
-
-pub type InqueryStatus = u32;
 
 pub trait Scene {
-    fn wakeup(&self) -> State;
-    fn apply(&mut self, fromId: Id, act: Action) -> Consequence;
-    fn status(&mut self) -> Option<InqueryStatus>;
+    fn wakeup(&mut self) -> State;
+    fn cast_on(&mut self, action: Action, from: Id, on: Id);
+    fn status(&mut self) -> Option<PlayerCount>;
 }

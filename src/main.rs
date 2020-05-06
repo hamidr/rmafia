@@ -1,6 +1,9 @@
+extern crate nanoid;
 mod game_scene;
-mod models;
-mod players;
+mod id;
+mod player;
+mod player_repository;
+mod room;
 mod scene;
 
 fn main() {
