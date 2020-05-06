@@ -16,9 +16,10 @@ impl PlayerCount {
     }
 }
 
-pub trait PlayerRepository {
-    fn get(&self, id: &Id) -> Option<&Player>;
-    fn get_mut(&mut self, id: &Id) -> Option<&mut Player>;
+pub trait PlayerRepository : Sized {
+    type P;
+    fn get(&self, id: &Id) -> Option<&Self::P>;
+    fn get_mut(&mut self, id: &Id) -> Option<&mut Self::P>;
     fn count(&self) -> PlayerCount;
     fn total(&self) -> usize;
 }
@@ -39,19 +40,21 @@ impl Players {
 }
 
 impl PlayerRepository for Players {
+    type P = Player;
+
     fn get(&self, id: &Id) -> Option<&Player> {
-        self.0.get(id).filter(|p| p.is_conscious())
+        self.0.get(id).filter(|p| p.is_alive())
     }
 
     fn get_mut(&mut self, id: &Id) -> Option<&mut Player> {
-        self.0.get_mut(id).filter(|p| p.is_conscious())
+        self.0.get_mut(id).filter(|p| p.is_alive())
     }
 
     fn count(&self) -> PlayerCount {
         let c =
             self.0
                 .values()
-                .filter(|p| p.is_conscious())
+                .filter(|p| p.is_alive())
                 .fold((0, 0, 0), |(a, b, c), p| {
                     match (p.is_mafia(), p.is_citizen()) {
                         (true, false) => (a + 1, b, c),
