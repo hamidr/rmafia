@@ -26,7 +26,7 @@ impl PlayerCount {
 }
 
 pub trait PlayerRepository: Sized + Clone {
-    type K: Caster + ?Clone;
+    type K: Caster;
 
     fn kill_injureds(&mut self);
     fn count_alives(&self) -> PlayerCount;
@@ -48,7 +48,7 @@ impl<C> Players<C> {
     }
 }
 
-impl<C: Caster> PlayerRepository for Players<C> {
+impl<C: Caster + ?Clone> PlayerRepository for Players<C> {
     type K = C;
 
     fn get(&mut self, id: &Id) -> Option<Arc<C>> {
