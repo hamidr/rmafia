@@ -1,6 +1,3 @@
-use crate::id::Id;
-use getset::{CopyGetters, Getters};
-
 #[derive(Debug, Clone)]
 pub struct UserInfo(pub String);
 
@@ -29,13 +26,11 @@ pub enum LifeState {
     Killed,
 }
 
-#[derive(Getters, CopyGetters, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Player {
-    #[getset(get = "pub")]
     user: UserInfo,
-    pub role: Role,
+    role: Role,
     pub state: LifeState,
-    pub wanted: u32,
 }
 
 impl Player {
@@ -43,41 +38,15 @@ impl Player {
         Player {
             user: user,
             role: role,
-            state: LifeState::Alive,
-            wanted: 0,
+            state: LifeState::Alive
         }
     }
-
-    fn set_state(&mut self, state: LifeState) -> bool {
-        let s = match self.state {
-            LifeState::Silent => matches!(state, LifeState::Alive | LifeState::Injured),
-            LifeState::Alive => matches!(state, LifeState::Injured | LifeState::Silent),
-            LifeState::Injured => matches!(
-                state,
-                LifeState::Alive | LifeState::Killed | LifeState::Hanged
-            ),
-            _ => false,
-        };
-        if s {
-            self.state = state;
-        }
-        s
-    }
-
-    fn inc_wanted(&mut self) {
-        self.wanted += 1;
-    }
-
-    fn reset_wanted(&mut self) {
-        self.wanted = 0;
-    }
-
 
     fn is_it_mafia(player: &mut Player) -> bool {
         if let Role::GodFather(ref mut n) = player.role {
             Self::use_power(n)
         } else {
-            player.is_mafia()
+            player.is(RoleKind::Mafia)
         }
     }
 
@@ -88,14 +57,28 @@ impl Player {
         *n -= 1;
         true
     }
+
+    pub fn kind(&self) -> RoleKind {
+        match self.role {
+            Role::GodFather(..) | Role::Silencer | Role::Spy => RoleKind::Mafia,
+            Role::Psycho => RoleKind::Psycho,
+            _ => RoleKind::Citizen
+        }
+    }
 }
 
-pub trait Caster : Sized {
+pub enum RoleKind {
+    Citizen,
+    Mafia,
+    Psycho
+}
+
+pub trait Caster: Sized {
     fn info(&self) -> &UserInfo;
     fn cast_on(&mut self, on: &mut Self) -> bool;
-    fn is_citizen(&self) -> bool;
+    fn is(&self, k: RoleKind) -> bool;
     fn is_alive(&self) -> bool;
-    fn is_mafia(&self) -> bool;
+    fn set_state(&mut self, state: LifeState) -> bool;
 }
 
 impl Caster for Player {
@@ -115,13 +98,11 @@ impl Caster for Player {
                 (false, _) => on.set_state(LifeState::Alive),
                 _ => false,
             },
-            Role::Sniper(ref mut n) => {
-                match (Self::use_power(n), on.is_citizen()) {
-                    (true, true) => self.set_state(LifeState::Injured),
-                    (true, false) => on.set_state(LifeState::Injured),
-                    _ => false,
-                }
-            }
+            Role::Sniper(ref mut n) => match (Self::use_power(n), on.is(RoleKind::Citizen)) {
+                (true, true) => self.set_state(LifeState::Injured),
+                (true, _) => on.set_state(LifeState::Injured),
+                _ => false,
+            },
             Role::Psycho => on.set_state(LifeState::Injured),
             Role::Silencer => on.set_state(LifeState::Silent),
 
@@ -130,20 +111,26 @@ impl Caster for Player {
     }
 
     fn is_alive(&self) -> bool {
-        matches!(
-            self.state,
-            LifeState::Alive | LifeState::Silent | LifeState::Injured
-        )
+        matches!(self.state, LifeState::Alive | LifeState::Injured | LifeState::Silent)
     }
 
-    fn is_mafia(&self) -> bool {
-        matches!(self.role, Role::GodFather(..) | Role::Silencer | Role::Spy)
+    fn is(&self, k: RoleKind) -> bool {
+        matches!(self.kind(), k)
     }
 
-    fn is_citizen(&self) -> bool {
-        match self.role {
-            Role::Psycho => true,
-            _ => !self.is_mafia(),
+    fn set_state(&mut self, state: LifeState) -> bool {
+        let s = match self.state {
+            LifeState::Silent => matches!(state, LifeState::Alive | LifeState::Injured),
+            LifeState::Alive => matches!(state, LifeState::Injured | LifeState::Silent),
+            LifeState::Injured => matches!(
+                state,
+                LifeState::Alive | LifeState::Killed | LifeState::Hanged
+            ),
+            _ => state == self.state,
+        };
+        if s {
+            self.state = state;
         }
+        s
     }
 }

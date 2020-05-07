@@ -1,8 +1,16 @@
 use std::collections::BTreeMap;
 
-use crate::id::Id;
 use crate::player::*;
 use crate::room::Room;
+
+#[derive(Hash, Eq, PartialEq, Debug, Clone, PartialOrd, Ord)]
+pub struct Id(String);
+
+impl Id {
+    pub fn unique_random_id() -> Id {
+        unimplemented!()
+    }
+}
 
 pub struct PlayerCount {
     pub mafia: usize,
@@ -16,12 +24,10 @@ impl PlayerCount {
     }
 }
 
-pub trait PlayerRepository : Sized {
-    type P;
-    fn get(&self, id: &Id) -> Option<&Self::P>;
-    fn get_mut(&mut self, id: &Id) -> Option<&mut Self::P>;
-    fn count(&self) -> PlayerCount;
-    fn total(&self) -> usize;
+pub trait PlayerRepository<K>: Sized {
+    fn get(&mut self, id: &Id) -> Option<&K>;
+    fn kill_injureds(&mut self) -> Vec<&K>;
+    fn count_alives(&self) -> PlayerCount;
 }
 
 #[derive(Debug, Clone)]
@@ -39,37 +45,37 @@ impl Players {
     }
 }
 
-impl PlayerRepository for Players {
-    type P = Player;
-
-    fn get(&self, id: &Id) -> Option<&Player> {
+impl PlayerRepository<Player> for Players {
+    fn get(&mut self, id: &Id) -> Option<&Player> {
         self.0.get(id).filter(|p| p.is_alive())
     }
 
-    fn get_mut(&mut self, id: &Id) -> Option<&mut Player> {
-        self.0.get_mut(id).filter(|p| p.is_alive())
+    fn kill_injureds(&mut self) -> Vec<&Player> {
+        self.0.values_mut().map(|p| {
+            if p.state == LifeState::Injured {
+                p.set_state(LifeState::Killed);
+            }
+            let n: &Player = p;
+            n
+        }).collect::<Vec<&Player>>()
     }
 
-    fn count(&self) -> PlayerCount {
-        let c =
-            self.0
-                .values()
-                .filter(|p| p.is_alive())
-                .fold((0, 0, 0), |(a, b, c), p| {
-                    match (p.is_mafia(), p.is_citizen()) {
-                        (true, false) => (a + 1, b, c),
-                        (false, true) => (a, b + 1, c),
-                        _ => (a, b, c + 1),
-                    }
-                });
+    fn count_alives(&self) -> PlayerCount {
+        let c = self
+            .0
+            .values()
+            .filter(|p| p.is_alive())
+            .fold((0, 0, 0), |(a, b, c), p| {
+                match p.kind() {
+                    RoleKind::Mafia => (a + 1, b, c),
+                    RoleKind::Citizen => (a, b + 1, c),
+                    _ => (a, b, c + 1),
+                }
+            });
         PlayerCount {
             mafia: c.0,
             citizen: c.1,
             psycho: c.2,
         }
-    }
-
-    fn total(&self) -> usize {
-        self.0.len()
     }
 }

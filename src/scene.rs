@@ -1,15 +1,14 @@
-use crate::id::Id;
-use crate::player_repository::PlayerCount;
+use crate::player_repository::{PlayerCount, Id};
 
-pub enum State {
+pub enum Progress {
     Fighting,
     Won,
     Lost,
     WTF,
 }
 
-pub trait Scene : Sized {
-    fn wakeup(&mut self) -> State;
+pub trait Scene: Sized {
+    fn wakeup(&mut self) -> Progress;
     fn cast_on(&mut self, from: Id, on: Id);
     fn status(&mut self) -> Option<PlayerCount>;
 }

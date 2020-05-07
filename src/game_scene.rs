@@ -1,4 +1,3 @@
-use crate::id::Id;
 use crate::player::*;
 use crate::player_repository::*;
 use crate::scene::*;
@@ -6,14 +5,16 @@ use crate::scene::*;
 type ActionRequest = (Id, Id);
 
 #[derive(Clone)]
-struct GameScene<P> {
+struct GameScene<R> {
     pub status_requested: u32,
-    pub players: P, 
+    pub players: R,
     events: Vec<ActionRequest>,
 }
 
-impl<P: PlayerRepository> GameScene<P> {
-    fn new(players: P, status_limit: u32) -> GameScene<P> {
+impl<R> GameScene<R> 
+where R: PlayerRepository<Player>
+{
+    fn new(players: R, status_limit: u32) -> GameScene<R> {
         GameScene {
             status_requested: status_limit,
             players: players,
@@ -22,21 +23,22 @@ impl<P: PlayerRepository> GameScene<P> {
     }
 
     fn eval_events(&mut self) {
-        unimplemented!()
     }
 
-    fn state(&self) -> State {
-        let count = self.players.count();
+    fn state(&self) -> Progress {
+        let count = self.players.count_alives();
         match (count.mafia, count.citizen, count.psycho) {
-            (m, c, p) if m == c && m >= 1 && p == 0 => State::Lost,
-            (m, _, p) if m == 0 && p == 0 => State::Won,
-            (m, c, p) if (m + c) == 0 && p == 1 => State::WTF,
-            _ => State::Fighting,
+            (m, c, p) if m == c && m >= 1 && p == 0 => Progress::Lost,
+            (m, _, p) if m == 0 && p == 0 => Progress::Won,
+            (m, c, p) if (m + c) == 0 && p == 1 => Progress::WTF,
+            _ => Progress::Fighting,
         }
     }
 }
-impl<P: PlayerRepository> Scene for GameScene<P> {
-    fn wakeup(&mut self) -> State {
+
+impl<R> Scene for GameScene<R>
+where R: PlayerRepository<Player> {
+    fn wakeup(&mut self) -> Progress {
         self.eval_events();
         self.events.clear();
         self.state()
@@ -51,6 +53,6 @@ impl<P: PlayerRepository> Scene for GameScene<P> {
             return None;
         }
         self.status_requested -= 1;
-        Some(self.players.count())
+        Some(self.players.count_alives())
     }
 }

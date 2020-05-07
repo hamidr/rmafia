@@ -1,6 +1,5 @@
 extern crate nanoid;
 mod game_scene;
-mod id;
 mod player;
 mod player_repository;
 mod room;
