@@ -23,19 +23,19 @@ impl<R: PlayerRepository> GameScene<R> {
     fn eval_events(&mut self) {
     }
 
-    fn state(&self) -> Progress {
+    fn state(&self) -> Status {
         let count = self.players.count_alives();
         match (count.mafia, count.citizen, count.psycho) {
-            (m, c, p) if m == c && m >= 1 && p == 0 => Progress::Lost,
-            (m, _, p) if m == 0 && p == 0 => Progress::Won,
-            (m, c, p) if (m + c) == 0 && p == 1 => Progress::WTF,
-            _ => Progress::Fighting,
+            (m, c, p) if m == c && m >= 1 && p == 0 => Status::Lost,
+            (m, _, p) if m == 0 && p == 0 => Status::Won,
+            (m, c, p) if (m + c) == 0 && p != 0 => Status::WTF,
+            _ => Status::Fighting,
         }
     }
 }
 
 impl<R: PlayerRepository> Scene for GameScene<R> {
-    fn wakeup(&mut self) -> Progress {
+    fn wakeup(&mut self) -> Status {
         self.eval_events();
         self.events.clear();
         self.state()

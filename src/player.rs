@@ -66,12 +66,14 @@ impl Player {
                 state,
                 LifeState::Alive | LifeState::Killed | LifeState::Hanged
             ),
-            _ => state == self.state,
+            _ => false,
         };
-        if s {
+        if s || state == self.state {
             self.state = state;
+            true
+        } else {
+            false
         }
-        s
     }
 }
 
