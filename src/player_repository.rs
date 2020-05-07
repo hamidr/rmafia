@@ -56,7 +56,7 @@ impl<C: Caster> PlayerRepository for Players<C> {
     fn kill_injureds(&mut self) -> Vec<&C> {
         self.0.values_mut().map(|p| {
             if p.state() == LifeState::Injured {
-                p.set_state(LifeState::Killed);
+                p.kill()
             }
             let n: &C = p;
             n
