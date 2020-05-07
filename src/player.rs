@@ -26,7 +26,7 @@ pub enum LifeState {
     Killed,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Player {
     user: UserInfo,
     role: Role,

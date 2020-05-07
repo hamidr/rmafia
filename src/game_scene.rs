@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::player::*;
 use crate::player_repository::*;
 use crate::scene::*;
@@ -6,8 +8,8 @@ type ActionRequest = (Id, Id);
 
 #[derive(Clone)]
 struct GameScene<R: PlayerRepository> {
-    pub status_requested: u32,
-    pub players: R,
+    status_requested: u32,
+    players: R,
     events: Vec<ActionRequest>,
 }
 
@@ -20,7 +22,16 @@ impl<R: PlayerRepository> GameScene<R> {
         }
     }
 
-    fn eval_events(&mut self) {
+    fn eval_events(&mut self) -> Option<()> {
+        for (a, b) in &self.events {
+            let mut ra = self.players.get(a)?;
+            let mut rb = self.players.get(b)?;
+            let from = Arc::get_mut(&mut ra)?;
+            let on = Arc::get_mut(&mut rb)?;
+            from.cast_on(on);
+        }
+
+        Some(())
     }
 
     fn state(&self) -> Status {

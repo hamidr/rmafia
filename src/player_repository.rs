@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use std::sync::Arc;
 use crate::player::*;
 use crate::room::Room;
 
@@ -25,14 +26,15 @@ impl PlayerCount {
 }
 
 pub trait PlayerRepository: Sized {
-    type K;
-    fn get(&mut self, id: &Id) -> Option<&Self::K>;
-    fn kill_injureds(&mut self) -> Vec<&Self::K>;
+    type K: Caster;
+
+    fn kill_injureds(&mut self);
     fn count_alives(&self) -> PlayerCount;
+    fn get(&mut self, id: &Id) -> Option<Arc<Self::K>>;
 }
 
 #[derive(Debug, Clone)]
-pub struct Players<C>(BTreeMap<Id, C>);
+pub struct Players<C>(BTreeMap<Id, Arc<C>>);
 
 impl<C> Players<C> {
     fn init(waiting: impl Room) -> Players<C> {
@@ -41,7 +43,7 @@ impl<C> Players<C> {
 
     fn insert(&mut self, player: C) -> Id {
         let id = Id::unique_random_id();
-        self.0.insert(id.clone(), player);
+        self.0.insert(id.clone(), Arc::new(player));
         id
     }
 }
@@ -49,18 +51,16 @@ impl<C> Players<C> {
 impl<C: Caster> PlayerRepository for Players<C> {
     type K = C;
 
-    fn get(&mut self, id: &Id) -> Option<&C> {
-        self.0.get(id).filter(|p| p.is_alive())
+    fn get(&mut self, id: &Id) -> Option<Arc<C>> {
+        self.0.get(id).filter(|p| p.is_alive()).cloned()
     }
 
-    fn kill_injureds(&mut self) -> Vec<&C> {
-        self.0.values_mut().map(|p| {
-            if p.state() == LifeState::Injured {
-                p.kill()
+    fn kill_injureds(&mut self) {
+        self.0.values_mut().map(|ptr| {
+            if ptr.state() == LifeState::Injured {
+                Arc::get_mut(ptr).map(|p| p.kill());
             }
-            let n: &C = p;
-            n
-        }).collect::<Vec<&C>>()
+        }).collect()
     }
 
     fn count_alives(&self) -> PlayerCount {
