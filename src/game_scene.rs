@@ -5,15 +5,13 @@ use crate::scene::*;
 type ActionRequest = (Id, Id);
 
 #[derive(Clone)]
-struct GameScene<R> {
+struct GameScene<R: PlayerRepository> {
     pub status_requested: u32,
     pub players: R,
     events: Vec<ActionRequest>,
 }
 
-impl<R> GameScene<R> 
-where R: PlayerRepository<Player>
-{
+impl<R: PlayerRepository> GameScene<R> {
     fn new(players: R, status_limit: u32) -> GameScene<R> {
         GameScene {
             status_requested: status_limit,
@@ -36,8 +34,7 @@ where R: PlayerRepository<Player>
     }
 }
 
-impl<R> Scene for GameScene<R>
-where R: PlayerRepository<Player> {
+impl<R: PlayerRepository> Scene for GameScene<R> {
     fn wakeup(&mut self) -> Progress {
         self.eval_events();
         self.events.clear();

@@ -30,7 +30,7 @@ pub enum LifeState {
 pub struct Player {
     user: UserInfo,
     role: Role,
-    pub state: LifeState,
+    state: LifeState,
 }
 
 impl Player {
@@ -75,10 +75,13 @@ pub enum RoleKind {
 
 pub trait Caster: Sized {
     fn info(&self) -> &UserInfo;
-    fn cast_on(&mut self, on: &mut Self) -> bool;
-    fn is(&self, k: RoleKind) -> bool;
     fn is_alive(&self) -> bool;
+    fn is(&self, k: RoleKind) -> bool;
+    fn kind(&self) -> RoleKind;
+    fn state(&self) -> LifeState;
+
     fn set_state(&mut self, state: LifeState) -> bool;
+    fn cast_on(&mut self, on: &mut Self) -> bool;
 }
 
 impl Caster for Player {
@@ -132,5 +135,13 @@ impl Caster for Player {
             self.state = state;
         }
         s
+    }
+
+    fn state(&self) -> LifeState {
+        self.state
+    }
+
+    fn kind(&self) -> RoleKind {
+        Player::kind(self)
     }
 }

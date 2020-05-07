@@ -24,40 +24,43 @@ impl PlayerCount {
     }
 }
 
-pub trait PlayerRepository<K>: Sized {
-    fn get(&mut self, id: &Id) -> Option<&K>;
-    fn kill_injureds(&mut self) -> Vec<&K>;
+pub trait PlayerRepository: Sized {
+    type K;
+    fn get(&mut self, id: &Id) -> Option<&Self::K>;
+    fn kill_injureds(&mut self) -> Vec<&Self::K>;
     fn count_alives(&self) -> PlayerCount;
 }
 
 #[derive(Debug, Clone)]
-pub struct Players(BTreeMap<Id, Player>);
+pub struct Players<C>(BTreeMap<Id, C>);
 
-impl Players {
-    fn init(waiting: impl Room) -> Players {
+impl<C> Players<C> {
+    fn init(waiting: impl Room) -> Players<C> {
         unimplemented!()
     }
 
-    fn insert(&mut self, player: Player) -> Id {
+    fn insert(&mut self, player: C) -> Id {
         let id = Id::unique_random_id();
         self.0.insert(id.clone(), player);
         id
     }
 }
 
-impl PlayerRepository<Player> for Players {
-    fn get(&mut self, id: &Id) -> Option<&Player> {
+impl<C: Caster> PlayerRepository for Players<C> {
+    type K = C;
+
+    fn get(&mut self, id: &Id) -> Option<&C> {
         self.0.get(id).filter(|p| p.is_alive())
     }
 
-    fn kill_injureds(&mut self) -> Vec<&Player> {
+    fn kill_injureds(&mut self) -> Vec<&C> {
         self.0.values_mut().map(|p| {
-            if p.state == LifeState::Injured {
+            if p.state() == LifeState::Injured {
                 p.set_state(LifeState::Killed);
             }
-            let n: &Player = p;
+            let n: &C = p;
             n
-        }).collect::<Vec<&Player>>()
+        }).collect::<Vec<&C>>()
     }
 
     fn count_alives(&self) -> PlayerCount {
