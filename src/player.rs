@@ -26,7 +26,7 @@ pub enum LifeState {
     Killed,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Player {
     user: UserInfo,
     role: Role,
@@ -38,7 +38,7 @@ impl Player {
         Player {
             user: user,
             role: role,
-            state: LifeState::Alive
+            state: LifeState::Alive,
         }
     }
 
@@ -80,10 +80,10 @@ impl Player {
 pub enum RoleKind {
     Citizen,
     Mafia,
-    Psycho
+    Psycho,
 }
 
-pub trait Caster: Sized {
+pub trait Caster: Sized + Clone {
     fn info(&self) -> &UserInfo;
     fn is_alive(&self) -> bool;
     fn kind(&self) -> RoleKind;
@@ -123,7 +123,10 @@ impl Caster for Player {
     }
 
     fn is_alive(&self) -> bool {
-        matches!(self.state, LifeState::Alive | LifeState::Injured | LifeState::Silent)
+        matches!(
+            self.state,
+            LifeState::Alive | LifeState::Injured | LifeState::Silent
+        )
     }
 
     fn state(&self) -> LifeState {
@@ -134,7 +137,7 @@ impl Caster for Player {
         match self.role {
             Role::GodFather(..) | Role::Silencer | Role::Spy => RoleKind::Mafia,
             Role::Psycho => RoleKind::Psycho,
-            _ => RoleKind::Citizen
+            _ => RoleKind::Citizen,
         }
     }
 

@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-use std::sync::Arc;
 use crate::player::*;
 use crate::room::Room;
+use std::sync::Arc;
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, PartialOrd, Ord)]
 pub struct Id(String);
@@ -25,8 +25,8 @@ impl PlayerCount {
     }
 }
 
-pub trait PlayerRepository: Sized {
-    type K: Caster;
+pub trait PlayerRepository: Sized + Clone {
+    type K: Caster + ?Clone;
 
     fn kill_injureds(&mut self);
     fn count_alives(&self) -> PlayerCount;
@@ -56,11 +56,14 @@ impl<C: Caster> PlayerRepository for Players<C> {
     }
 
     fn kill_injureds(&mut self) {
-        self.0.values_mut().map(|ptr| {
-            if ptr.state() == LifeState::Injured {
-                Arc::get_mut(ptr).map(|p| p.kill());
-            }
-        }).collect()
+        self.0
+            .values_mut()
+            .map(|ptr| {
+                if ptr.state() == LifeState::Injured {
+                    Arc::get_mut(ptr).map(|p| p.kill());
+                }
+            })
+            .collect()
     }
 
     fn count_alives(&self) -> PlayerCount {
@@ -68,12 +71,10 @@ impl<C: Caster> PlayerRepository for Players<C> {
             .0
             .values()
             .filter(|p| p.is_alive())
-            .fold((0, 0, 0), |(a, b, c), p| {
-                match p.kind() {
-                    RoleKind::Mafia => (a + 1, b, c),
-                    RoleKind::Citizen => (a, b + 1, c),
-                    _ => (a, b, c + 1),
-                }
+            .fold((0, 0, 0), |(a, b, c), p| match p.kind() {
+                RoleKind::Mafia => (a + 1, b, c),
+                RoleKind::Citizen => (a, b + 1, c),
+                _ => (a, b, c + 1),
             });
         PlayerCount {
             mafia: c.0,
