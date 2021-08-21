@@ -10,10 +10,10 @@ use rand::{prelude::SliceRandom, thread_rng};
 pub struct Classic {
     strategy: Play,
     room: InMemoryRoom,
-    enquery: u8,
     state: CityState,
+    events: Vec<(Day, CityState, Declaration)>,
+    enquery: u8,
     day: usize,
-    events: Vec<(Day, CityState, Declaration)>
 }
 
 impl Classic {
@@ -25,10 +25,10 @@ impl Classic {
         let mut res = Self {
             strategy: Play::new(),
             room: InMemoryRoom::new(players),
-            enquery: 3,
             state: CityState::Debate,
+            events: vec![],
+            enquery: 3,
             day: 0,
-            events: vec![]
         };
         res.assign_roles();
         Ok(res)
@@ -44,9 +44,9 @@ impl Classic {
         let mut players = self.room.numbers();
         players.shuffle(&mut thread_rng());
 
-        self.assign(&mut players, vec![NightKill, DodgeCommando, Disguise, Mafia]);
-        self.assign(&mut players, vec![Paralyze, Mafia]);
-        self.assign(&mut players, vec![Reveal, Mafia]);
+        self.assign(&mut players, vec![Mafia, NightKill, DodgeCommando, Disguise]);
+        self.assign(&mut players, vec![Mafia, Paralyze]);
+        self.assign(&mut players, vec![Mafia, Reveal]);
 
         self.assign(&mut players, vec![HandFakeGun, HandGun]);
         self.assign(&mut players, vec![Heal]);
@@ -121,15 +121,10 @@ impl Classic {
         }
     }
 
-
-    fn foo() -> impl Spells {
-        OneToOneSpells::new()
-    }
-
     fn darkness(&mut self, spells: &impl Spells) -> Result<NightResult, Error> {
         let spells = self.room.read_all();
-        let s = Self::foo();
-        self.strategy.apply_night(&self.room, s)
+        let s = OneToOneSpells::new();
+        self.strategy.apply_night(&mut self.room, s)
     }
 
     fn sunrise(&mut self, n: &impl News) {

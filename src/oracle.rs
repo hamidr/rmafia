@@ -25,9 +25,9 @@ impl<S, H> TwoWayRing<S, H> {
 
 pub struct Oracle;
 impl Oracle {
-    pub fn create<L, R>() -> (TwoWayRing<L, R>, TwoWayRing<R, L>)  {
-        let rb_god = RingBuffer::<L>::new(10);
-        let rb_player = RingBuffer::<R>::new(1);
+    pub fn create<L, R>(god: usize, prays: usize) -> (TwoWayRing<L, R>, TwoWayRing<R, L>)  {
+        let rb_god = RingBuffer::<L>::new(god);
+        let rb_player = RingBuffer::<R>::new(prays);
 
         let (god_prod, god_cons) = rb_god.split();
         let (player_prod, player_cons) = rb_player.split();

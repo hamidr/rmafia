@@ -9,6 +9,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50ae17cabbc8a38a1e3e4c1a6a664e9a09672dc14d0896fa8d865d3a5a446b07"
 
 [[package]]
+name = "btreemultimap"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aba7eaea18547dd4915e745859622e5f796e5b08f5d594735ed0e08d051f97ca"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "cache-padded"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -112,6 +121,7 @@ name = "rmafia"
 version = "0.1.0"
 dependencies = [
  "bimap",
+ "btreemultimap",
  "nanoid",
  "rand",
  "ringbuf",

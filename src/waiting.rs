@@ -76,7 +76,7 @@ impl WaitingRoom for WaitingBuilder {
             return None
         }
 
-        let (channel, oracle) = Oracle::create();
+        let (channel, oracle) = Oracle::create(10, 1);
         self.waiting.insert(id, channel);
         Some((id, oracle))
     }

@@ -27,12 +27,27 @@ pub enum Power {
     HandFakeGun,
     ShotOnKill,
 
-    Debate,
-    Vote,
+    // Debate,
+    // Vote,
 
     // Citizen,
     // NightShot,
     // Armoured
+}
+impl Power {
+    pub fn night(&self) -> bool {
+        self.active().contains(self)
+    }
+
+    pub fn active(&self) -> [Power; 9] {
+        use Power::*;
+        [NightKill, Reveal, Paralyze, Heal, Enquery, Guard, HandGun, HandFakeGun, ShotOnKill]
+    }
+
+    pub fn passive(&self) -> [Power; 3] {
+        use Power::*;
+        [Disguise, DodgeCommando, Mafia]
+    }
 }
 
 #[derive(Clone)]
@@ -44,7 +59,7 @@ pub enum HolyMessage {
 }
 
 pub enum Meta {
-    Reveal(Power)
+    Has(Power)
 }
 
 pub struct Vote(PlayerId);
@@ -56,18 +71,13 @@ pub struct Pray {
 }
 
 impl Pray {
-    pub fn night(action: Power, query: Vec<PlayerId>, meta: Option<Meta>) -> Option<Pray> {
+    fn is_consistent(&self) -> bool {
         use Power::*;
-        let check = match (&action, &query, &meta) {
-            (Reveal, a, Some(Meta::Reveal(_))) if a.len() == 1 => true,
-            (NightKill | Paralyze | Heal | Enquery | HandGun | HandFakeGun | Guard, a, None) if a.len() <= 2 => true,
-            (ShotOnKill, a, None) if a.len() == 1 => true,
+        match (&self.action, &self.query, &self.meta) {
+            (Reveal, ids, Some(Meta::Has(Power::Heal|Power::Guard|Power::Enquery|Power::ShotOnKill))) if ids.len() == 1 => true,
+            (NightKill|Paralyze|Heal|Enquery|HandGun|HandFakeGun|Guard, ids, None) if ids.len() <= 2 => true,
+            (ShotOnKill, ids, None) if ids.len() == 1 => true,
             _ => false
-        };
-        if check {
-            Some(Pray { action, query, meta }) 
-        } else {
-            None
         }
     }
 
