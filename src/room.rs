@@ -1,3 +1,5 @@
+use std::vec;
+
 use crate::{scenario::*, waiting::{PlayerId}};
 
 pub trait Room {
@@ -17,10 +19,21 @@ pub enum NightAct {
     Wicked(PlayerId, Power)
 }
 
+impl NightAct {
+    pub fn ids(&self) -> Vec<PlayerId> {
+        match *self {
+            Self::One(p1) => vec![p1],
+            Self::Two(p1, p2) => vec![p1, p2],
+            _ => vec![]
+        }
+    }
+}
+
 pub type RawSpell = (PlayerId, Power, NightAct);
 pub trait Spells {
     fn get(&self, power: &Power) -> Option<&NightAct>;
     fn raw(&self, power: &Power) -> Option<&RawSpell>;
+    fn raw_vec(&self, power: &Power) -> Option<Vec<&RawSpell>>;
     fn one(&self, power: &Power) -> Option<(PlayerId, Power, PlayerId)>;
     fn two(&self, power: &Power) -> Option<(PlayerId, Power, (PlayerId, PlayerId))>;
     fn all(&self, power: &Power) -> Option<(PlayerId, Power, Vec<PlayerId>)>;

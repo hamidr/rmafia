@@ -155,4 +155,8 @@ impl Spells for OneToOneSpells {
     fn all(&self, power: &Power) -> Option<(PlayerId, Power, Vec<PlayerId>)> {
         todo!()
     }
+
+    fn raw_vec(&self, power: &Power) -> Option<Vec<&RawSpell>> {
+        todo!()
+    }
 }
