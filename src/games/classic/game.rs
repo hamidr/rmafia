@@ -1,14 +1,13 @@
 
 use std::{collections::BTreeMap};
 
-use crate::{in_memory_room::{InMemoryRoom, OneToOneSpells}, room::{Room, Spells}, scenario::*, waiting::{GodWayRef, PlayerId}};
+use crate::{in_memory_room::InMemoryRoom, room::{Room, Spells}, scenario::*, waiting::{GodWayRef, PlayerId}};
 
 use super::{play::*};
 use crate::elections::ballot::Ballots;
 use rand::{prelude::SliceRandom, thread_rng};
 
 pub struct Classic {
-    strategy: Play,
     room: InMemoryRoom,
     state: CityState,
     events: Vec<(Day, CityState, Declaration)>,
@@ -23,7 +22,6 @@ impl Classic {
         }
 
         let mut res = Self {
-            strategy: Play::new(),
             room: InMemoryRoom::new(players),
             state: CityState::Debate,
             events: vec![],
@@ -49,8 +47,8 @@ impl Classic {
         self.assign(&mut players, vec![Mafia, Reveal]);
 
         self.assign(&mut players, vec![HandFakeGun, HandGun]);
+        self.assign(&mut players, vec![DayShield, Guard]);
         self.assign(&mut players, vec![Heal]);
-        self.assign(&mut players, vec![Guard]);
         self.assign(&mut players, vec![ShotOnKill]);
         self.assign(&mut players, vec![Enquery]);
         self.assign(&mut players, vec![]);
@@ -71,8 +69,7 @@ impl Classic {
     }
 
     fn first_id_by_power(&mut self, power: &Power) -> Option<PlayerId> {
-        let mut x = self.room.by_power(power).pop()?;
-        x.on().clone().pop()
+        self.room.by_power(power).first().cloned()
     }
 
     fn pass_night_kill(&mut self) -> bool {
@@ -109,11 +106,9 @@ impl Classic {
     
     fn on_shooting(&mut self, res: ShootingResult) {
         match res {
-            ShootingResult::EmptyGun(id) => {
-                self.declare(Declaration::FakeGun(id));
-            },
+            ShootingResult::EmptyGun(id) => self.declare(Declaration::FakeGun(id)),
             ShootingResult::Killed(id) => {
-                if self.kick_out(&id) {
+                if !self.room.has(&id, &Power::DayShield) && self.kick_out(&id) {
                     self.declare(Declaration::Out(id));
                 }
             },
@@ -135,7 +130,7 @@ impl Classic {
 
     fn sunset(&mut self, d: &impl DeathBallot) {
         if let Some(ref id) = d.dead() {
-            if self.room.has(id, &Power::Guard) {
+            if !self.room.has(id, &Power::DayShield) {
                 self.kick_out(id);
             }
         }
