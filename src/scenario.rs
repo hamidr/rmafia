@@ -1,5 +1,7 @@
 use std::{collections::{BTreeMap, BTreeSet}, vec};
 
+use btreemultimap::BTreeMultiMap;
+
 use crate::waiting::PlayerId;
 
 pub type Error = String;
@@ -13,27 +15,22 @@ pub enum ShootingResult {
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub enum Power {
-    Disguise,
-    DodgeCommando,
+    Guard,
+    Paralyze,
     NightKill,
     Reveal,
-    Paralyze,
-    Mafia,
-
     Heal,
     Enquery,
-    Guard,
     HandGun,
     HandFakeGun,
     ShotOnKill,
 
-    // Debate,
-    // Vote,
-
-    // Citizen,
-    // NightShot,
-    // Armoured
+    Disguise,
+    DodgeCommando,
+    Mafia,
+    DayShield,
 }
+
 impl Power {
     pub fn night(&self) -> bool {
         self.active().contains(self)
@@ -44,9 +41,9 @@ impl Power {
         [NightKill, Reveal, Paralyze, Heal, Enquery, Guard, HandGun, HandFakeGun, ShotOnKill]
     }
 
-    pub fn passive(&self) -> [Power; 3] {
+    pub fn passive(&self) -> [Power; 4] {
         use Power::*;
-        [Disguise, DodgeCommando, Mafia]
+        [Disguise, DodgeCommando, Mafia, DayShield]
     }
 }
 
@@ -62,31 +59,29 @@ pub enum Meta {
     Has(Power)
 }
 
-pub struct Vote(PlayerId);
-
 pub struct Pray {
-    action: Power,
-    query: Vec<PlayerId>,
-    meta: Option<Meta>
+    pub action: Power,
+    pub query: Vec<PlayerId>,
+    pub meta: Option<Meta>
 }
 
-impl Pray {
-    fn is_consistent(&self) -> bool {
-        use Power::*;
-        match (&self.action, &self.query, &self.meta) {
-            (Reveal, ids, Some(Meta::Has(Power::Heal|Power::Guard|Power::Enquery|Power::ShotOnKill))) if ids.len() == 1 => true,
-            (NightKill|Paralyze|Heal|Enquery|HandGun|HandFakeGun|Guard, ids, None) if ids.len() <= 2 => true,
-            (ShotOnKill, ids, None) if ids.len() == 1 => true,
-            _ => false
-        }
-    }
+// impl Pray {
+//     fn is_consistent(&self) -> bool {
+//         use Power::*;
+//         match (&self.action, &self.query, &self.meta) {
+//             (Reveal, ids, Some(Meta::Has(Power::Heal|Power::DayShield|Power::Enquery|Power::ShotOnKill))) if ids.len() == 1 => true,
+//             (NightKill|Paralyze|Heal|Enquery|HandGun|HandFakeGun|DayShield, ids, None) if ids.len() <= 2 => true,
+//             (ShotOnKill, ids, None) if ids.len() == 1 => true,
+//             _ => false
+//         }
+//     }
 
-    pub fn on(&self) -> &Vec<PlayerId> {
-        &self.query
-    }
-}
+//     pub fn on(&self) -> &Vec<PlayerId> {
+//         &self.query
+//     }
+// }
 
-pub type Messages = BTreeMap<PlayerId, HolyMessage>;
+pub type Messages = BTreeMultiMap<PlayerId, HolyMessage>;
 
 // pub type Spells<'a> = BTreeMap<Role, Spell<'a>>;
 

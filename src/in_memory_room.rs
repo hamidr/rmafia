@@ -62,12 +62,6 @@ impl InMemoryRoom {
         }
         res
     }
-
-    pub fn by_power(&mut self, power: &Power) -> Vec<Pray> {
-        self.players.values_mut().filter_map(|p| 
-            if p.powers.contains(power) { p.connection.read() } else { None }
-        ).collect()
-    }
 }
 
 impl Room for InMemoryRoom {
@@ -98,65 +92,40 @@ impl Room for InMemoryRoom {
         self.players.get(id).map(|p| p.powers.clone()).unwrap_or(Vec::new())
     }
 
-    fn drop_kink(&mut self, id: &PlayerId, kink: &Power) -> bool {
+    fn drop_kinks(&mut self, id: &PlayerId, kinks: Vec<Power>) {
         if let Some(p) = self.players.get_mut(id) {
-            let res = match p.powers.binary_search_by(|p| p.cmp(kink)) {
-                Ok(index) => p.powers.remove(index) == *kink,
-                Err(_) => false,
-            };
+            for kink in kinks {
+                match p.powers.binary_search_by(|p| p.cmp(&kink)) {
+                    Ok(index) => { p.powers.remove(index); },
+                    Err(_) => {},
+                };
+            }
             p.connection.tell(HolyMessage::Assigned(p.powers.clone()));
-            return res;
         }
-        false
-    }
-}
-
-pub struct OneToOneSpells(BTreeMap<Power, Pray>);
-impl OneToOneSpells {
-    pub fn new() -> OneToOneSpells {
-        Self(todo!())
-    }
-}
-
-impl Spells for OneToOneSpells {
-
-    fn stop(&mut self, power: &Power) -> bool {
-        todo!()
     }
 
-    fn get(&self, power: &Power) -> Option<&NightAct> {
-        todo!()
+    fn messages(&mut self, id: &PlayerId) -> Vec<Pray> {
+        let mut msgs = Vec::new();
+        match self.players.get_mut(id) {
+            Some(user) => {
+                while let Some(pray) = user.connection.read() {
+                    if user.powers.contains(&pray.action) {
+                        msgs.push(pray);
+                    }
+                }
+            },
+            None => ()
+        };
+        msgs
     }
 
-    fn raw(&self, power: &Power) -> Option<&RawSpell> {
-        todo!()
-    }
-
-    fn get_kv(&self, power: &Power) -> Option<(&Power, &NightAct)> {
-        todo!()
-    }
-
-    fn expect1(&self, power: &Power) -> Option<&PlayerId> {
-        todo!()
-    }
-
-    fn expect2(&self, power: &Power) -> Option<(&PlayerId, &PlayerId)> {
-        todo!()
-    }
-
-    fn one(&self, power: &Power) -> Option<(PlayerId, Power, PlayerId)> {
-        todo!()
-    }
-
-    fn two(&self, power: &Power) -> Option<(PlayerId, Power, (PlayerId, PlayerId))> {
-        todo!()
-    }
-
-    fn all(&self, power: &Power) -> Option<(PlayerId, Power, Vec<PlayerId>)> {
-        todo!()
-    }
-
-    fn raw_vec(&self, power: &Power) -> Option<Vec<&RawSpell>> {
-        todo!()
+    fn by_power(&self, power: &Power) -> Vec<PlayerId> {
+        self.players.iter().filter_map(|(id, p)|
+            if p.powers.contains(power) {
+                Some(id.clone())
+            } else {
+                None
+            }
+        ).collect()
     }
 }

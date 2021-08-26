@@ -1,15 +1,17 @@
-use std::vec;
+use std::{collections::BTreeSet, vec};
 
 use crate::{scenario::*, waiting::{PlayerId}};
 
 pub trait Room {
     fn numbers(&self) -> Vec<PlayerId>;
     fn has(&self, id: &PlayerId, power: &Power) -> bool;
-    fn drop_kink(&mut self, id: &PlayerId, power: &Power) -> bool;
+    fn drop_kinks(&mut self, id: &PlayerId, kinks: Vec<Power>);
     fn kinks(&self, id: &PlayerId) -> Vec<Power>;
     fn total(&self) -> usize;
     fn count(&self, power: &Power) -> usize;
     fn remove(&mut self, id: &PlayerId) -> Vec<Power>;
+    fn messages(&mut self, id: &PlayerId) -> Vec<Pray>;
+    fn by_power(&self, power: &Power) -> Vec<PlayerId>;
 }
 
 #[derive(Clone)]
@@ -19,15 +21,6 @@ pub enum NightAct {
     Wicked(PlayerId, Power)
 }
 
-impl NightAct {
-    pub fn ids(&self) -> Vec<PlayerId> {
-        match *self {
-            Self::One(p1) => vec![p1],
-            Self::Two(p1, p2) => vec![p1, p2],
-            _ => vec![]
-        }
-    }
-}
 
 pub type RawSpell = (PlayerId, Power, NightAct);
 pub trait Spells {
