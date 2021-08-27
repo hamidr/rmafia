@@ -117,9 +117,10 @@ impl Classic {
     }
 
     fn darkness(&mut self, spells: &impl Spells) -> Result<NightResult, Error> {
-        let spells = self.room.read_all();
-        let s = OneToOneSpells::new();
-        self.strategy.apply_night(&mut self.room, s)
+        // let spells = self.room.read_all();
+        // let s = OneToOneSpells::new();
+        // self.strategy.apply_night(&mut self.room, s)
+        todo!()
     }
 
     fn sunrise(&mut self, n: &impl News) {

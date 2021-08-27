@@ -92,7 +92,7 @@ impl Room for InMemoryRoom {
         self.players.get(id).map(|p| p.powers.clone()).unwrap_or(Vec::new())
     }
 
-    fn drop_kinks(&mut self, id: &PlayerId, kinks: Vec<Power>) {
+    fn drop_kinks<const N: usize>(&mut self, id: &PlayerId, kinks: [Power; N]) {
         if let Some(p) = self.players.get_mut(id) {
             for kink in kinks {
                 match p.powers.binary_search_by(|p| p.cmp(&kink)) {

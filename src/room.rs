@@ -5,7 +5,7 @@ use crate::{scenario::*, waiting::{PlayerId}};
 pub trait Room {
     fn numbers(&self) -> Vec<PlayerId>;
     fn has(&self, id: &PlayerId, power: &Power) -> bool;
-    fn drop_kinks(&mut self, id: &PlayerId, kinks: Vec<Power>);
+    fn drop_kinks<const N: usize>(&mut self, id: &PlayerId, kinks: [Power; N]);
     fn kinks(&self, id: &PlayerId) -> Vec<Power>;
     fn total(&self) -> usize;
     fn count(&self, power: &Power) -> usize;

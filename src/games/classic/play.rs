@@ -110,14 +110,14 @@ impl Play {
         let res = match killing {
             BossKilled(p) if !heals.contains(&p) => Some(p),
             CommandoActed(from, res)  => {
-                room.drop_kink(&from, &Power::ShotOnKill);
+                room.drop_kinks(&from, [Power::ShotOnKill]);
                 match res {
                     Some(id) if heals.contains(&id) => None,
                     p => p
                 }
             },
             WickedActed(from, p) => {
-                room.drop_kink(&from, &Power::Reveal); p
+                room.drop_kinks(&from, [Power::Reveal]); p
             },
             _ => None,
         };
@@ -169,7 +169,7 @@ impl Play {
             deads.insert(killed);
         }
 
-        let mut msgs = BTreeMap::new();
+        let mut msgs = BTreeMultiMap::new();
         self.gunman(&spells);
         Self::detective(room, &mut msgs, &spells);
 
@@ -181,10 +181,7 @@ impl Play {
         self.day.get_vec(shooter).unwrap_or(&Vec::new())
         .iter()
         .find_map(|p| match p {
-            DayEvent::RealGun(gunman) => { 
-                room.drop_kink(gunman, &Power::HandGun);
-                Some(ShootingResult::Killed(on))
-            },
+            DayEvent::RealGun(gunman) =>  Some(ShootingResult::Killed(on)),
             DayEvent::FakeGun => Some(ShootingResult::EmptyGun(on))
         }).unwrap_or(ShootingResult::NotAllowed)
     }   
